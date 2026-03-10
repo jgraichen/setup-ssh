@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -ueo pipefail
+
+eval "$(ssh-agent)"
+echo "SSH_AGENT_PID=${SSH_AGENT_PID}">> "$GITHUB_ENV"
+echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}">> "$GITHUB_ENV"
+
+# Add private key if given as input
+if [ -n "$SSH_PRIVATE_KEY" ]; then
+  ssh-add -q - <<< "$SSH_PRIVATE_KEY"
+fi
+
+# Set up local users SSH profile
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+# If a known hosts file is given as input, copy it into the SSH profile
+# directory.
+if [ -n "$SSH_KNOWN_HOSTS" ]; then
+  echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+fi
+
+# If a known hosts file exists inside the repository, add it too.
+if [ -f ".ssh/known_hosts" ]; then
+  cat ".ssh/known_hosts" >> ~/.ssh/known_hosts
+fi
+
+chmod 644 ~/.ssh/known_hosts
+
+# Copy SSH client config
+if [ -f ".ssh/config" ]; then
+  cp ".ssh/config" ~/.ssh/config
+fi
